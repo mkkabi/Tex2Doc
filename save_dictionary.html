@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <title>User Defined Dictionary</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      width: 100%;
+      margin: 0 auto;
+      padding: 0;
+    }
+    .container {
+      border: 1px solid #ddd;
+      padding: 8px;
+      border-radius: 5px;
+    }
+    .form-group {
+      margin-bottom: 15px;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+    input[type="text"] {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+    button {
+      background-color: #4285f4;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-right: 10px;
+    }
+    button:hover {
+      background-color: #3367d6;
+    }
+    .entry {
+      background-color: #f9f9f9;
+      padding: 10px;
+      margin: 5px 0;
+      border-radius: 4px;
+      overflow:hidden; 
+    }
+    .entry p{float:left;}
+    .message {
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 4px;
+      display: none;
+    }
+    .success {
+      background-color: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+    .error {
+      background-color: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+    .remove_button{
+      float:right;
+      margin-right:1px;
+    }
+    .button {
+    background-color: white;
+    border: none;
+    color: black;
+    padding: 2px 2px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    margin: 4px 2px;
+    transition-duration: 0.4s;
+    cursor: pointer;
+  }
+
+.button1 {border: 2px solid #04AA6D;}
+.button2 {border: 2px solid #008CBA;}
+.button3 {border: 2px solid #927e7c; padding: 0 5px;}
+.button4 {border: 2px solid #e7e7e7;}
+.button_padding_large {padding:10px;}
+.button5 {border: 2px solid #555555;}
+
+.button1:hover {
+  background-color: #04AA6D;
+  color: white;
+}
+
+.button2:hover {
+  background-color: #008CBA;
+  color: white;
+}
+
+.button3:hover {
+  background-color: #f44336;
+  color: white;
+}
+
+.button4:hover {background-color: #e7e7e7;}
+
+.button5:hover {
+  background-color: #555555;
+  color: white;
+}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- <h3>User Defined Dictionary</h3> -->
+    
+    <div id="message" class="message"></div>
+    <div class="form">
+    <div class="form-group">
+      <label for="key">Key:</label>
+      <input type="text" id="key" placeholder="Enter key">
+    </div>
+    
+    <div class="form-group">
+      <label for="value">Value:</label>
+      <input type="text" id="value" placeholder="Enter value">
+    </div>
+
+    <div style="display: flex;align-items: baseline;">
+      <input style="margin-right:15px;" type="checkbox" id="regexcheck" name="checkbox" />
+      <label for="checkbox">Regex</label>
+      <button onclick="saveEntry()" style="margin-left: auto;">Save</button>
+    </div>
+
+    </div>
+    <p></p>
+    <div class="utility_buttons">
+    <button class="button button4 button_padding_large" onclick="loadDictionary()">Load Dictionary</button>
+    <button class="button button3 button_padding_large" onclick="clearDictionary()">Clear All</button>
+    </div>
+    <div id="dictionaryDisplay" style="margin-top: 20px;"></div>
+  </div>
+
+  <script>
+    function showMessage(text, type) {
+      const messageDiv = document.getElementById('message');
+      messageDiv.textContent = text;
+      messageDiv.className = 'message ' + type;
+      messageDiv.style.display = 'block';
+      setTimeout(() => {
+        messageDiv.style.display = 'none';
+      }, 3000);
+    }
+
+    function saveEntry() {
+      const key = document.getElementById('key').value.trim();
+      const value = document.getElementById('value').value.trim();
+      const regexcheck = document.getElementById('regexcheck').checked;
+      console.log("checkbox = "+regexcheck);
+      if (!key || !value) {
+        showMessage('Please enter both key and value', 'error');
+        return;
+      }
+      
+      google.script.run
+        .withSuccessHandler(() => {
+          showMessage('Entry saved successfully!', 'success');
+          document.getElementById('key').value = '';
+          document.getElementById('value').value = '';
+          loadDictionary(); // Refresh the display
+        })
+        .withFailureHandler((error) => {
+          showMessage('Error saving entry: ' + error, 'error');
+        })
+        .saveToUserProperties(key, value, regexcheck);
+    }
+
+    function loadDictionary() {
+      google.script.run
+        .withSuccessHandler((dictionary) => {
+          const displayDiv = document.getElementById('dictionaryDisplay');
+          if (dictionary && Object.keys(dictionary).length > 0) {
+            // let html = '<h3>Current Dictionary:</h3>';
+            let html = '';
+            for (const [key, value] of Object.entries(dictionary)) {
+              const escapedKey = key.replace(/\\([-\/\\^$*+?.()|[\]{}])/g, '$1');
+              html += `<div class="entry"><p><strong>${escapedKey}:</strong> ${value} </p><button class="remove_button button button3" onclick="removeUserDictItem('${key}')">Del</button></div>`;
+            }
+            displayDiv.innerHTML = html;
+          } else {
+            displayDiv.innerHTML = '<p>No entries in dictionary yet.</p>';
+          }
+        })
+        .withFailureHandler((error) => {
+          showMessage('Error loading dictionary: ' + error, 'error');
+        })
+        .loadFromUserProperties();
+    }
+
+    function removeUserDictItem(key){
+      console.log("will be removing "+key);
+      if (confirm('Remove '+key+"?")) {
+        google.script.run
+          .withSuccessHandler(() => {
+            
+            showMessage(key+' removed successfully!', 'success');
+            loadDictionary();
+          })
+          .withFailureHandler((error) => {
+            showMessage('Error removing item: ' + error, 'error');
+          })
+          .deleteKeyFromUserDict(key);
+      }
+    }
+
+    function clearDictionary() {
+      if (confirm('Are you sure you want to clear all entries?')) {
+        google.script.run
+          .withSuccessHandler(() => {
+            showMessage('Dictionary cleared successfully!', 'success');
+            document.getElementById('dictionaryDisplay').innerHTML = '';
+          })
+          .withFailureHandler((error) => {
+            showMessage('Error clearing dictionary: ' + error, 'error');
+          })
+          .clearUserProperties();
+      }
+    }
+
+    // Load dictionary when page opens
+    window.onload = loadDictionary;
+  </script>
+</body>
+</html>

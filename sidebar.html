@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <style>
+      body { font-family: Arial; padding: 8px; }
+      h3 { margin: 8px 0 4px; }
+      table { width: 100%; border-collapse: collapse; margin-bottom: 10px; font-size: 20px; }
+      th, td { border: 1px solid #ddd; padding: 4px; text-align: left; }
+      th { background-color: #f2f2f2; }
+      tr.highlight { background-color: #eef; }
+      ul { list-style: none; padding-left: 0; max-height: 120px; overflow-y: auto; border: 1px solid #ddd; margin-bottom: 10px; }
+      li { padding: 4px; cursor: pointer; border-bottom: 1px solid #ddd; }
+      li:hover { background-color: #eef; }
+      input { width: 100%; padding: 4px; margin-bottom: 4px; font-size: 14px; }
+    </style>
+  </head>
+  <body>
+    <!-- Section 1: Most Frequent -->
+    <h3>Most Frequent</h3>
+    <table id="mostFrequent">
+      <tr><th>Key</th><th>Value</th></tr>
+    </table>
+    <hr>
+    <!-- Section 2: All Items Table -->
+    <!-- <h4>All Replacements</h4> -->
+    <input id="search" placeholder="Search symbols..." />
+    <table id="allTable">
+      <tr><th>Key</th><th>Value</th></tr>
+    </table>
+
+    <script>
+      const mostFrequent = document.getElementById('mostFrequent');
+      const allTable = document.getElementById('allTable');
+      const searchInput = document.getElementById('search');
+
+      let allReplacements = {};
+      let mostFrequentItemsDict = {}; // start empty
+
+      // Load your data properly
+      google.script.run.withSuccessHandler(function(data) {
+        mostFrequentItemsDict = data || {}; // assign when loaded
+        console.log("Loaded replacements: ", mostFrequentItemsDict);
+      }).loadReplacementsCount();
+
+      function normalizeKey(key) {
+        return key.replace(/\\/g, "");
+      }
+
+      function insertValue(value, key) {
+          console.log("most frequent before insert "+JSON.stringify(mostFrequentItemsDict));
+          google.script.run.insertTextAtCursor(value);
+          console.log("inserted value "+value+" key = "+key);
+          if (!mostFrequentItemsDict[key]) {
+            mostFrequentItemsDict[key] = 1;
+          } else mostFrequentItemsDict[key] += 1; 
+          // Call the server-side function
+          console.log("most frequent after insert "+JSON.stringify(mostFrequentItemsDict));
+          if(mostFrequentItemsDict) google.script.run.saveReplacementsCount(mostFrequentItemsDict);
+      }
+
+      google.script.run.withSuccessHandler(displayMostFrequent).getTopFrequent();
+      google.script.run.withSuccessHandler(displayAllReplacements).getAllReplacements();
+
+      searchInput.addEventListener('input', () => {
+        const filter = searchInput.value.toLowerCase();
+        filterTable(filter);
+      });
+
+      function displayMostFrequent(items) {
+
+        rebuildFrequentTable(items, mostFrequent);
+      }
+
+      function displayAllReplacements(allObj) {
+        allReplacements = allObj; // save globally for filtering
+        allObjSorted = sortDictByKey(allObj);
+        rebuildTable(allObjSorted, allTable);
+      }
+
+      function sortDictByKey(dict){
+        result = Object.keys(dict)
+          .sort() // Sort keys alphabetically
+          .reduce((acc, key) => {
+              acc[key] = dict[key];
+              return acc;
+          }, {});
+        return result;
+      }
+
+
+      function rebuildTable(obj, elementId) {
+        // Clear table but keep header
+        elementId.innerHTML = '<tr><th>Name</th><th>Symbol</th></tr>';
+        for (const key in obj) {
+          const row = document.createElement('tr');
+          const normKey = normalizeKey(key);
+          const tdKey = document.createElement('td');
+          tdKey.textContent = normKey;
+          tdKey.style.cursor = 'pointer';
+          tdKey.addEventListener('mouseenter', () => {
+            tdKey.style.backgroundColor = '#f0f0f0';
+          });
+          tdKey.addEventListener('mouseleave', () => {
+              tdKey.style.backgroundColor = '';
+          });
+          tdKey.addEventListener('click', () => {
+            insertValue(obj[key], key);
+          });
+          const tdValue = document.createElement('td');
+          tdValue.textContent = obj[key];
+          row.appendChild(tdKey);
+          row.appendChild(tdValue);
+          elementId.appendChild(row);
+        }
+      }
+
+      function rebuildFrequentTable(obj, elementId) {  // WORKS
+        // Clear table but keep header
+        elementId.innerHTML = '<tr><th>Name</th><th>Symbol</th></tr>';
+        for (i=0;i<obj.length;i++) {
+          const rowKey = obj[i][0];
+          const row = document.createElement('tr');
+          const normKey = normalizeKey(rowKey);
+          const tdKey = document.createElement('td');
+          tdKey.textContent = normKey;
+          tdKey.style.cursor = 'pointer';
+          tdKey.addEventListener('click', () => {
+            insertValue(allReplacements[rowKey], rowKey);
+          });
+          const tdValue = document.createElement('td');
+          tdValue.textContent = allReplacements[obj[i][0]];
+          row.appendChild(tdKey);
+          row.appendChild(tdValue);
+          elementId.appendChild(row);
+        }
+      }
+          
+      function filterTable(filter) {
+        const rows = allTable.querySelectorAll('tr');
+        // Skip header row
+        rows.forEach((row, index) => {
+          if (index === 0) return;
+          const keyText = row.cells[0].textContent.toLowerCase();
+          if (keyText.includes(filter)) {
+            row.style.display = '';
+            if (filter) {
+              row.classList.add('highlight');
+            } else {
+              row.classList.remove('highlight');
+            }
+          } else {
+            row.style.display = 'none';
+            row.classList.remove('highlight');
+          }
+        });
+      }
+    </script>
+  </body>
+</html>
