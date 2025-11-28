@@ -1,3 +1,11 @@
+function showDialog() {
+    var html = HtmlService.createHtmlOutputFromFile('start_edit_missing_message')
+        .setWidth(400)
+        .setHeight(200);
+    DocumentApp.getUi() // Or DocumentApp or SlidesApp or FormApp.
+        .showModalDialog(html, '\'start edit\' is missing.');
+}
+
 function processAll() {
     const doc = DocumentApp.getActiveDocument();
     const body = doc.getBody();
@@ -7,6 +15,7 @@ function processAll() {
 
     if (!startInfo.found) {
         Logger.log("'start edit' not found in the document");
+        showDialog();
         return;
     }
     const { paragraphIndex, characterOffset } = startInfo;
@@ -103,8 +112,14 @@ function processAll() {
 //   Logger.log(JSON.stringify(replacements_count, null, 2));
 // }
 
-function onInstall(e){
+/**
+ * Called once when user installs the add-on. Ensure they get the menu immediately.
+ */
+function onInstall(e) {
+    // Always call onOpen so newly installed users see the menu right away.
     onOpen(e);
+    // You could also add installation analytics or setup here
+    // PropertiesService.getScriptProperties().setProperty('INSTALL_TIME', new Date().toString());
 }
 
 
@@ -130,15 +145,7 @@ function onOpen(e) {
         .addToUi();
 }
 
-/**
- * Called once when user installs the add-on. Ensure they get the menu immediately.
- */
-function onInstall(e) {
-    // Always call onOpen so newly installed users see the menu right away.
-    onOpen(e);
-    // You could also add installation analytics or setup here
-    // PropertiesService.getScriptProperties().setProperty('INSTALL_TIME', new Date().toString());
-}
+
 
 
 
