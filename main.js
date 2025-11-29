@@ -1,9 +1,9 @@
 function showDialog() {
-    var html = HtmlService.createHtmlOutputFromFile('start_edit_missing_message')
-        .setWidth(400)
-        .setHeight(200);
-    DocumentApp.getUi() // Or DocumentApp or SlidesApp or FormApp.
-        .showModalDialog(html, '\'start edit\' is missing.');
+  var html = HtmlService.createHtmlOutputFromFile('start_edit_missing_message')
+      .setWidth(400)
+      .setHeight(200);
+  DocumentApp.getUi() // Or DocumentApp or SlidesApp or FormApp.
+      .showModalDialog(html, '\'start edit\' is missing.');
 }
 
 function processAll() {
